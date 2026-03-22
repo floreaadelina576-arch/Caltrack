@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CalTrack">
+<meta name="theme-color" content="#111118">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>CalTrack</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#111118;--s1:#1a1a24;--s2:#22222f;--s3:#2c2c3d;
+  --border:#32324a;--accent:#c8f04b;--accent-dim:rgba(200,240,75,.12);
+  --red:#ff6060;--blue:#5ec9ff;--orange:#ffaa3c;--green:#4dffb0;
+  --text:#eeeef5;--sub:#9292b0;
+  --sb:env(safe-area-inset-bottom,0px);
+  --st:env(safe-area-inset-top,0px);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif}
+body{display:flex;flex-direction:column;max-width:430px;margin:0 auto}
+
+/* ── PAGES ── */
+.page{display:none;flex-direction:column;flex:1;overflow:hidden;animation:pgIn .25s ease both}
+.page.on{display:flex}
+@keyframes pgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ── TOPBAR ── */
+.topbar{
+  padding:calc(var(--st) + 14px) 18px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;background:var(--bg);
+  border-bottom:1px solid var(--border);
+}
+.logo{font-weight:900;font-size:1.35rem;letter-spacing:-.04em}
+.logo em{color:var(--accent);font-style:normal}
+.chip{background:var(--s1);border:1px solid var(--border);border-radius:100px;padding:5px 13px;font-size:.72rem;font-weight:600;color:var(--sub)}
+
+/* ── SCROLL ── */
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px calc(80px + var(--sb))}
+.scroll::-webkit-scrollbar{display:none}
+
+/* ── CARDS ── */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:20px;padding:18px;margin-bottom:12px}
+.card-sm{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:14px}
+
+/* ── HERO RING ── */
+.hero{display:flex;align-items:center;gap:18px}
+.ring-wrap{position:relative;width:108px;height:108px;flex-shrink:0}
+.ring-svg{width:108px;height:108px;transform:rotate(-90deg)}
+.r-bg{fill:none;stroke:var(--s2);stroke-width:8}
+.r-fill{fill:none;stroke:var(--accent);stroke-width:8;stroke-linecap:round;
+  stroke-dasharray:283;stroke-dashoffset:283;
+  transition:stroke-dashoffset .9s cubic-bezier(.34,1.56,.64,1),stroke .3s;
+  filter:drop-shadow(0 0 6px rgba(200,240,75,.5))}
+.ring-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-n{font-weight:900;font-size:1.55rem;line-height:1}
+.ring-l{font-size:.58rem;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
+.hero-info{flex:1}
+.hi-lbl{font-size:.65rem;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
+.hi-goal{font-weight:800;font-size:.95rem;margin-bottom:10px}
+.remain-box{background:var(--s2);border-radius:10px;padding:9px 12px}
+.rem-n{font-weight:900;font-size:1.15rem;color:var(--accent)}
+.rem-l{font-size:.65rem;color:var(--sub);margin-top:1px}
+
+/* ── MACROS ── */
+.macros{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.mc{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:11px 8px;text-align:center}
+.mc-dot{width:5px;height:5px;border-radius:50%;margin:0 auto 5px}
+.mc-n{font-weight:800;font-size:.95rem;line-height:1}
+.mc-lbl{font-size:.57rem;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.07em;margin-top:3px}
+.mc-bar{height:3px;border-radius:10px;background:var(--s2);margin-top:7px;overflow:hidden}
+.mc-fill{height:100%;border-radius:10px;width:0%;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
+
+/* ── SECTION HDR ── */
+.sec{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sec-t{font-weight:800;font-size:.88rem}
+.btn-plus{background:var(--accent);color:#111118;border:none;border-radius:100px;padding:7px 16px;font-family:'Outfit',sans-serif;font-weight:800;font-size:.75rem;cursor:pointer;transition:.12s}
+.btn-plus:active{transform:scale(.95)}
+
+/* ── FOOD LIST ── */
+.foods{display:flex;flex-direction:column;gap:7px;margin-bottom:16px}
+.food-item{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px}
+.food-ico{width:36px;height:36px;border-radius:10px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.food-body{flex:1;min-width:0}
+.food-name{font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.food-meta{font-size:.65rem;color:var(--sub);margin-top:2px}
+.food-cal{font-weight:900;font-size:.92rem;color:var(--accent);flex-shrink:0}
+.food-del{background:none;border:none;color:var(--sub);cursor:pointer;padding:6px;border-radius:8px;font-size:.85rem;flex-shrink:0;transition:.15s}
+.food-del:active{color:var(--red)}
+.empty{text-align:center;padding:32px 20px;color:var(--sub);font-size:.82rem;line-height:1.7}
+.empty-ico{font-size:2rem;margin-bottom:8px}
+
+/* ── STATS ── */
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.sc{background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:15px;animation:pgIn .35s ease both}
+.sc-ico{font-size:1.3rem;margin-bottom:5px}
+.sc-n{font-weight:900;font-size:1.4rem;line-height:1}
+.sc-l{font-size:.63rem;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.07em;margin-top:4px}
+.prog-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:8px;animation:pgIn .35s ease both}
+.prog-row{display:flex;justify-content:space-between;font-size:.75rem;color:var(--sub);margin-bottom:7px;font-weight:500}
+.prog-bar{height:7px;background:var(--s2);border-radius:10px;overflow:hidden}
+.prog-fill{height:100%;border-radius:10px;width:0%;transition:width .9s cubic-bezier(.34,1.56,.64,1)}
+
+/* ── SETTINGS ── */
+.set-group{margin-bottom:20px}
+.set-label{font-size:.63rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.09em;margin-bottom:7px;padding-left:2px}
+.set-card{background:var(--s1);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border)}
+.set-row:last-child{border-bottom:none}
+.set-row-l{font-weight:500;font-size:.88rem}
+.set-row-v{color:var(--accent);font-weight:800;font-size:.9rem}
+.set-input{background:var(--s2);border:1.5px solid var(--border);border-radius:10px;color:var(--accent);font-family:'Outfit',sans-serif;font-weight:800;font-size:1rem;padding:7px 11px;width:88px;text-align:right;outline:none;-webkit-appearance:none}
+.set-input:focus{border-color:var(--accent)}
+.btn-danger{width:100%;background:rgba(255,96,96,.1);color:var(--red);border:1px solid rgba(255,96,96,.22);border-radius:12px;padding:13px;font-family:'Outfit',sans-serif;font-weight:800;font-size:.88rem;cursor:pointer;transition:.15s}
+.btn-danger:active{background:rgba(255,96,96,.2)}
+
+/* ── INSTALL SCREEN ── */
+.inst-hero{text-align:center;padding:28px 20px 20px}
+.inst-icon{width:80px;height:80px;border-radius:22px;background:var(--s1);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:2.4rem;margin:0 auto 16px}
+.inst-title{font-weight:900;font-size:1.4rem;letter-spacing:-.03em;margin-bottom:6px}
+.inst-sub{font-size:.82rem;color:var(--sub);line-height:1.6}
+.os-tabs{display:flex;gap:8px;margin-bottom:16px}
+.os-tab{flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--s1);color:var(--sub);font-family:'Outfit',sans-serif;font-weight:700;font-size:.82rem;cursor:pointer;transition:.2s;text-align:center}
+.os-tab.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.steps-card{background:var(--s1);border:1px solid var(--border);border-radius:18px;overflow:hidden;margin-bottom:12px}
+.step-row{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border)}
+.step-row:last-child{border-bottom:none}
+.step-num{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#111118;font-weight:900;font-size:.78rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.step-body{}
+.step-title{font-weight:700;font-size:.88rem;margin-bottom:2px}
+.step-desc{font-size:.75rem;color:var(--sub);line-height:1.5}
+.step-desc strong{color:var(--text);font-weight:700}
+.inst-note{background:var(--accent-dim);border:1px solid rgba(200,240,75,.2);border-radius:12px;padding:12px 14px;font-size:.75rem;color:var(--sub);line-height:1.5;margin-bottom:12px}
+.inst-note strong{color:var(--accent)}
+.netlify-card{background:linear-gradient(135deg,rgba(200,240,75,.1),rgba(200,240,75,.04));border:1px solid rgba(200,240,75,.2);border-radius:16px;padding:16px;margin-bottom:12px}
+.netlify-title{font-weight:800;font-size:.95rem;margin-bottom:4px}
+.netlify-sub{font-size:.75rem;color:var(--sub);line-height:1.5;margin-bottom:12px}
+.netlify-steps{display:flex;flex-direction:column;gap:6px}
+.nl-step{display:flex;align-items:center;gap:10px;font-size:.78rem}
+.nl-num{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#111118;font-weight:900;font-size:.65rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.btn-netlify{display:block;width:100%;background:var(--accent);color:#111118;border:none;border-radius:12px;padding:13px;font-family:'Outfit',sans-serif;font-weight:900;font-size:.9rem;cursor:pointer;text-align:center;margin-top:12px;text-decoration:none}
+
+/* ── ADD PANEL ── */
+#addPanel{
+  position:fixed;inset:0;background:var(--bg);z-index:80;
+  transform:translateY(100%);transition:transform .38s cubic-bezier(.32,1.2,.6,1);
+  display:flex!important;flex-direction:column;
+}
+#addPanel.up{transform:none}
+.add-handle{width:34px;height:4px;background:var(--border);border-radius:10px;margin:12px auto 2px;flex-shrink:0}
+.add-hdr{font-weight:900;font-size:1.15rem;text-align:center;padding:8px 20px 14px;flex-shrink:0}
+.add-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 18px calc(20px + var(--sb))}
+.add-scroll::-webkit-scrollbar{display:none}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:.62rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
+.field input,.field select{width:100%;background:var(--s1);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-family:'Outfit',sans-serif;font-size:.95rem;font-weight:500;padding:12px 14px;outline:none;-webkit-appearance:none;transition:.2s}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.field select option{background:var(--s1)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-save{width:100%;background:var(--accent);color:#111118;border:none;border-radius:14px;padding:15px;font-family:'Outfit',sans-serif;font-weight:900;font-size:.98rem;cursor:pointer;margin-top:6px;transition:.12s}
+.btn-save:active{transform:scale(.98)}
+.btn-cancel{width:100%;background:none;border:none;color:var(--sub);padding:13px;font-family:'Outfit',sans-serif;font-size:.88rem;cursor:pointer;margin-top:4px}
+
+/* ── BOTTOM NAV ── */
+.bnav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:430px;
+  background:rgba(17,17,24,.94);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border-top:1px solid var(--border);
+  display:grid;grid-template-columns:repeat(4,1fr);
+  padding:8px 0 calc(8px + var(--sb));z-index:50;
+}
+.nb{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--sub);cursor:pointer;padding:5px 0;transition:.18s;font-family:'Outfit',sans-serif}
+.nb.on{color:var(--accent)}
+.nb-ico{font-size:1.3rem}
+.nb-lbl{font-size:.58rem;font-weight:700;letter-spacing:.03em}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:calc(76px + var(--sb));left:50%;transform:translateX(-50%) translateY(20px);background:var(--accent);color:#111118;padding:9px 20px;border-radius:100px;font-weight:800;font-size:.8rem;z-index:200;opacity:0;pointer-events:none;white-space:nowrap;transition:opacity .22s,transform .22s cubic-bezier(.34,1.56,.64,1)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- ══ PAGE: HOME ══ -->
+<div class="page on" id="pgHome">
+  <div class="topbar">
+    <div class="logo">Cal<em>Track</em></div>
+    <div class="chip" id="dateChip"></div>
+  </div>
+  <div class="scroll">
+    <div class="card hero">
+      <div class="ring-wrap">
+        <svg class="ring-svg" viewBox="0 0 108 108">
+          <circle class="r-bg" cx="54" cy="54" r="45"/>
+          <circle class="r-fill" id="rFill" cx="54" cy="54" r="45"/>
+        </svg>
+        <div class="ring-mid">
+          <div class="ring-n" id="rNum">0</div>
+          <div class="ring-l">kcal</div>
+        </div>
+      </div>
+      <div class="hero-info">
+        <div class="hi-lbl">Obiectiv zilnic</div>
+        <div class="hi-goal" id="goalLbl">2000 kcal</div>
+        <div class="remain-box">
+          <div class="rem-n" id="remNum">2000</div>
+          <div class="rem-l">calorii rămase</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="macros">
+      <div class="mc">
+        <div class="mc-dot" style="background:var(--blue)"></div>
+        <div class="mc-n" id="mP" style="color:var(--blue)">0g</div>
+        <div class="mc-lbl">Proteine</div>
+        <div class="mc-bar"><div class="mc-fill" id="bP" style="background:var(--blue)"></div></div>
+      </div>
+      <div class="mc">
+        <div class="mc-dot" style="background:var(--orange)"></div>
+        <div class="mc-n" id="mC" style="color:var(--orange)">0g</div>
+        <div class="mc-lbl">Glucide</div>
+        <div class="mc-bar"><div class="mc-fill" id="bC" style="background:var(--orange)"></div></div>
+      </div>
+      <div class="mc">
+        <div class="mc-dot" style="background:var(--red)"></div>
+        <div class="mc-n" id="mF" style="color:var(--red)">0g</div>
+        <div class="mc-lbl">Grăsimi</div>
+        <div class="mc-bar"><div class="mc-fill" id="bF" style="background:var(--red)"></div></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-t">Alimente de azi</div>
+      <button class="btn-plus" onclick="openAdd()">+ Adaugă</button>
+    </div>
+    <div class="foods" id="foodList"></div>
+  </div>
+</div>
+
+<!-- ══ PAGE: STATS ══ -->
+<div class="page" id="pgStats">
+  <div class="topbar">
+    <div class="logo" style="font-size:1.05rem">📊 Statistici</div>
+    <div class="chip" id="dateChip2"></div>
+  </div>
+  <div class="scroll">
+    <div class="sg">
+      <div class="sc"><div class="sc-ico">🔥</div><div class="sc-n" id="stCal">0</div><div class="sc-l">kcal azi</div></div>
+      <div class="sc" style="animation-delay:.06s"><div class="sc-ico">🎯</div><div class="sc-n" id="stPct">0%</div><div class="sc-l">Din obiectiv</div></div>
+      <div class="sc" style="animation-delay:.1s"><div class="sc-ico">🍽️</div><div class="sc-n" id="stCnt">0</div><div class="sc-l">Alimente</div></div>
+      <div class="sc" style="animation-delay:.14s"><div class="sc-ico">💚</div><div class="sc-n" id="stRem">0</div><div class="sc-l">kcal rămase</div></div>
+    </div>
+    <div class="prog-card"><div class="prog-row"><span>🔵 Proteine</span><span id="prPL">0g</span></div><div class="prog-bar"><div class="prog-fill" id="prP" style="background:var(--blue)"></div></div></div>
+    <div class="prog-card" style="animation-delay:.08s"><div class="prog-row"><span>🟠 Glucide</span><span id="prCL">0g</span></div><div class="prog-bar"><div class="prog-fill" id="prC" style="background:var(--orange)"></div></div></div>
+    <div class="prog-card" style="animation-delay:.14s"><div class="prog-row"><span>🔴 Grăsimi</span><span id="prFL">0g</span></div><div class="prog-bar"><div class="prog-fill" id="prF" style="background:var(--red)"></div></div></div>
+    <div class="prog-card" style="animation-delay:.2s"><div class="prog-row"><span>⚡ Calorii</span><span id="prCalL">0 kcal</span></div><div class="prog-bar"><div class="prog-fill" id="prCal" style="background:var(--accent)"></div></div></div>
+  </div>
+</div>
+
+<!-- ══ PAGE: INSTALL ══ -->
+<div class="page" id="pgInstall">
+  <div class="topbar">
+    <div class="logo" style="font-size:1.05rem">📲 Instalare</div>
+  </div>
+  <div class="scroll">
+    <div class="inst-hero">
+      <div class="inst-icon">⚡</div>
+      <div class="inst-title">Instalează CalTrack</div>
+      <div class="inst-sub">Funcționează ca o aplicație normală — ecran propriu, fără browser, merge și offline.</div>
+    </div>
+
+    <!-- NETLIFY HOSTING -->
+    <div class="netlify-card">
+      <div class="netlify-title">⚠️ Pasul 0 — Pune aplicația online</div>
+      <div class="netlify-sub">Ca să o poți instala pe telefon, fișierele trebuie să fie pe un server. Cel mai simplu mod gratuit: <strong>Netlify Drop</strong>.</div>
+      <div class="netlify-steps">
+        <div class="nl-step"><div class="nl-num">1</div><span>Descarcă ZIP-ul CalTrack pe calculator</span></div>
+        <div class="nl-step"><div class="nl-num">2</div><span>Dezarhivează folderul <strong>caltrack2</strong></span></div>
+        <div class="nl-step"><div class="nl-num">3</div><span>Mergi pe <strong>netlify.com/drop</strong></span></div>
+        <div class="nl-step"><div class="nl-num">4</div><span>Trage folderul <strong>caltrack2</strong> în pagină</span></div>
+        <div class="nl-step"><div class="nl-num">5</div><span>Primești un link gen <em>xxxx.netlify.app</em> — deschide-l pe telefon</span></div>
+      </div>
+    </div>
+
+    <div class="inst-note">
+      <strong>✅ Gratuit total</strong> — Netlify îți oferă hosting permanent fără niciun cost. Linkul tău va funcționa mereu.
+    </div>
+
+    <!-- OS TABS -->
+    <div class="os-tabs">
+      <button class="os-tab active" id="tabAndroid" onclick="switchOS('android')">🤖 Android</button>
+      <button class="os-tab" id="tabIos" onclick="switchOS('ios')">🍎 iPhone</button>
+    </div>
+
+    <!-- ANDROID STEPS -->
+    <div class="steps-card" id="stepsAndroid">
+      <div class="step-row">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Deschide linkul în Chrome</div>
+          <div class="step-desc">Deschide browserul <strong>Chrome</strong> pe telefon și accesează linkul tău de pe Netlify.</div>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Apasă meniul ⋮</div>
+          <div class="step-desc">Apasă cele <strong>3 puncte</strong> din dreapta sus a browserului Chrome.</div>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">„Adaugă pe ecranul principal"</div>
+          <div class="step-desc">Caută opțiunea <strong>„Adaugă pe ecranul principal"</strong> sau <strong>„Install app"</strong> și apas-o.</div>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Confirmă instalarea</div>
+          <div class="step-desc">Apasă <strong>„Instalează"</strong> sau <strong>„Adaugă"</strong>. CalTrack apare acum pe ecranul tău principal! 🎉</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IOS STEPS -->
+    <div class="steps-card" id="stepsIos" style="display:none">
+      <div class="step-row">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Deschide linkul în Safari</div>
+          <div class="step-desc">Trebuie să folosești <strong>Safari</strong> — nu Chrome sau alt browser — pe iPhone sau iPad.</div>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Apasă butonul Share 􀈂</div>
+          <div class="step-desc">Apasă icoana <strong>Share</strong> (pătratul cu săgeată în sus) din bara de jos a Safari.</div>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">„Adaugă pe ecranul principal"</div>
+          <div class="step-desc">Derulează în jos și apasă <strong>„Add to Home Screen"</strong> / <strong>„Adaugă pe ecranul principal"</strong>.</div>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Confirmă</div>
+          <div class="step-desc">Apasă <strong>„Add"</strong> / <strong>„Adaugă"</strong> în dreapta sus. CalTrack apare acum pe Home Screen! 🎉</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inst-note" style="margin-top:4px">
+      💡 <strong>Odată instalată</strong>, aplicația funcționează <strong>complet offline</strong>, nu mai ai nevoie de internet. Datele sunt salvate local pe telefon.
+    </div>
+  </div>
+</div>
+
+<!-- ══ PAGE: SETTINGS ══ -->
+<div class="page" id="pgSettings">
+  <div class="topbar">
+    <div class="logo" style="font-size:1.05rem">⚙️ Setări</div>
+  </div>
+  <div class="scroll">
+    <div class="set-group">
+      <div class="set-label">Obiectiv Calorii</div>
+      <div class="set-card">
+        <div class="set-row">
+          <div class="set-row-l">Calorii / zi</div>
+          <input class="set-input" type="number" id="goalIn" value="2000" min="500" max="9999" inputmode="numeric" onchange="setGoal()">
+        </div>
+      </div>
+    </div>
+    <div class="set-group">
+      <div class="set-label">Macros recomandate (bazat pe obiectiv)</div>
+      <div class="set-card">
+        <div class="set-row"><div class="set-row-l">Proteine</div><div class="set-row-v" id="setP">~150g</div></div>
+        <div class="set-row"><div class="set-row-l">Glucide</div><div class="set-row-v" id="setC">~250g</div></div>
+        <div class="set-row"><div class="set-row-l">Grăsimi</div><div class="set-row-v" id="setF">~67g</div></div>
+      </div>
+    </div>
+    <div class="set-group">
+      <div class="set-label">Date</div>
+      <div class="set-card">
+        <div class="set-row"><div class="set-row-l">Alimente loggate azi</div><div class="set-row-v" id="setCnt">0</div></div>
+        <div class="set-row"><div class="set-row-l">Versiune</div><div class="set-row-v">2.0.0</div></div>
+      </div>
+    </div>
+    <button class="btn-danger" onclick="doReset()">🗑️ Șterge toate datele de azi</button>
+  </div>
+</div>
+
+<!-- ══ ADD PANEL ══ -->
+<div id="addPanel">
+  <div class="add-handle"></div>
+  <div class="add-hdr">Adaugă Aliment</div>
+  <div class="add-scroll">
+    <div class="field">
+      <label>Nume aliment *</label>
+      <input type="text" id="fName" placeholder="ex: Piept de pui, Banană, Ouă…" autocomplete="off">
+    </div>
+    <div class="g2">
+      <div class="field"><label>Calorii (kcal) *</label><input type="number" id="fCal" placeholder="0" min="0" inputmode="decimal"></div>
+      <div class="field"><label>Cantitate (g/ml)</label><input type="number" id="fAmt" placeholder="100" value="100" min="1" inputmode="decimal"></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Proteine (g)</label><input type="number" id="fProt" placeholder="0" min="0" step="0.1" inputmode="decimal"></div>
+      <div class="field"><label>Glucide (g)</label><input type="number" id="fCarb" placeholder="0" min="0" step="0.1" inputmode="decimal"></div>
+    </div>
+    <div class="field"><label>Grăsimi (g)</label><input type="number" id="fFat" placeholder="0" min="0" step="0.1" inputmode="decimal"></div>
+    <div class="field">
+      <label>Masă</label>
+      <select id="fMeal">
+        <option>🌅 Mic dejun</option>
+        <option>☀️ Prânz</option>
+        <option>🌙 Cină</option>
+        <option>🍎 Gustare</option>
+      </select>
+    </div>
+    <button class="btn-save" onclick="saveFood()">Adaugă Aliment</button>
+    <button class="btn-cancel" onclick="closeAdd()">Anulează</button>
+  </div>
+</div>
+
+<!-- ══ BOTTOM NAV ══ -->
+<nav class="bnav">
+  <button class="nb on" id="nb0" onclick="go('Home',0)"><span class="nb-ico">🏠</span><span class="nb-lbl">Acasă</span></button>
+  <button class="nb" id="nb1" onclick="go('Stats',1)"><span class="nb-ico">📊</span><span class="nb-lbl">Statistici</span></button>
+  <button class="nb" id="nb2" onclick="openAdd()"><span class="nb-ico" style="font-size:1.7rem;margin-top:-3px">＋</span><span class="nb-lbl">Adaugă</span></button>
+  <button class="nb" id="nb3" onclick="go('Install',3)"><span class="nb-ico">📲</span><span class="nb-lbl">Instalare</span></button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+const KEY = 'ct3';
+let S = (() => {
+  const today = new Date().toDateString();
+  try { const d = JSON.parse(localStorage.getItem(KEY)||'{}'); if(d.date===today) return d; } catch(e){}
+  return {date:new Date().toDateString(), goal:2000, entries:[]};
+})();
+const save = () => localStorage.setItem(KEY, JSON.stringify(S));
+
+// ── RENDER ──
+function render() {
+  const {entries:E, goal:G} = S;
+  const cal = E.reduce((s,e)=>s+e.cal,0);
+  const p   = E.reduce((s,e)=>s+e.prot,0);
+  const c   = E.reduce((s,e)=>s+e.carb,0);
+  const f   = E.reduce((s,e)=>s+e.fat,0);
+  const pct = Math.min(cal/G,1);
+  const rem = Math.max(G-cal,0);
+
+  // ring
+  const circ = 2*Math.PI*45;
+  const rf = document.getElementById('rFill');
+  rf.style.strokeDasharray = circ;
+  rf.style.strokeDashoffset = circ*(1-pct);
+  rf.style.stroke = cal>G ? 'var(--red)' : 'var(--accent)';
+  rf.style.filter = cal>G ? 'drop-shadow(0 0 6px rgba(255,96,96,.5))' : 'drop-shadow(0 0 6px rgba(200,240,75,.5))';
+  document.getElementById('rNum').textContent = cal;
+  document.getElementById('goalLbl').textContent = G+' kcal';
+  document.getElementById('remNum').textContent = rem;
+
+  // macros
+  const mp=G*.30/4, mc=G*.50/4, mf=G*.20/9;
+  $('mP').textContent=p.toFixed(1)+'g'; $('bP').style.width=pw(p,mp);
+  $('mC').textContent=c.toFixed(1)+'g'; $('bC').style.width=pw(c,mc);
+  $('mF').textContent=f.toFixed(1)+'g'; $('bF').style.width=pw(f,mf);
+
+  // food list
+  const fl = $('foodList');
+  if(!E.length){
+    fl.innerHTML=`<div class="empty"><div class="empty-ico">🥗</div>Niciun aliment logat astăzi.<br>Apasă <strong>+</strong> pentru a adăuga.</div>`;
+  } else {
+    fl.innerHTML=E.map((e,i)=>`
+      <div class="food-item" style="animation-delay:${i*.04}s">
+        <div class="food-ico">${mealIco(e.meal)}</div>
+        <div class="food-body">
+          <div class="food-name">${esc(e.name)}</div>
+          <div class="food-meta">${e.meal} · ${e.amt}g · P${e.prot}g C${e.carb}g G${e.fat}g</div>
+        </div>
+        <div class="food-cal">${e.cal}</div>
+        <button class="food-del" onclick="del(${i})">✕</button>
+      </div>`).join('');
+  }
+
+  // stats
+  $('stCal').textContent=cal; $('stPct').textContent=Math.round(pct*100)+'%';
+  $('stCnt').textContent=E.length; $('stRem').textContent=rem;
+  $('prPL').textContent=p.toFixed(1)+'g'; $('prP').style.width=pw(p,mp);
+  $('prCL').textContent=c.toFixed(1)+'g'; $('prC').style.width=pw(c,mc);
+  $('prFL').textContent=f.toFixed(1)+'g'; $('prF').style.width=pw(f,mf);
+  $('prCalL').textContent=cal+' kcal'; $('prCal').style.width=Math.min(pct*100,100)+'%';
+
+  // settings
+  $('goalIn').value=G;
+  $('setP').textContent='~'+Math.round(G*.30/4)+'g';
+  $('setC').textContent='~'+Math.round(G*.50/4)+'g';
+  $('setF').textContent='~'+Math.round(G*.20/9)+'g';
+  $('setCnt').textContent=E.length;
+}
+
+const $ = id => document.getElementById(id);
+const pw = (v,max) => Math.min(v/max*100,100)+'%';
+const mealIco = m => m.includes('Mic')?'🌅':m.includes('Prânz')?'☀️':m.includes('Cină')?'🌙':'🍎';
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+// ── NAV ──
+function go(name, idx) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  $('pg'+name).classList.add('on');
+  document.querySelectorAll('.nb').forEach((b,i)=>b.classList.toggle('on',i===idx));
+  render();
+}
+
+// ── ADD ──
+function openAdd() { $('addPanel').classList.add('up'); setTimeout(()=>$('fName').focus(),380); }
+function closeAdd() { $('addPanel').classList.remove('up'); clearForm(); }
+function clearForm() {
+  ['fName','fCal','fProt','fCarb','fFat'].forEach(id=>$(id).value='');
+  $('fAmt').value=100;
+}
+function saveFood() {
+  const name = $('fName').value.trim();
+  const cal  = parseFloat($('fCal').value)||0;
+  const amt  = parseFloat($('fAmt').value)||100;
+  const prot = parseFloat($('fProt').value)||0;
+  const carb = parseFloat($('fCarb').value)||0;
+  const fat  = parseFloat($('fFat').value)||0;
+  const meal = $('fMeal').value;
+  if(!name){toast('⚠️ Introdu numele alimentului');return;}
+  if(cal<=0){toast('⚠️ Introdu caloriile');return;}
+  S.entries.push({name,cal:Math.round(cal),amt,prot:Math.round(prot*10)/10,carb:Math.round(carb*10)/10,fat:Math.round(fat*10)/10,meal});
+  save(); render(); closeAdd(); toast('✓ Aliment adăugat!');
+}
+function del(i) {
+  if(confirm('Ștergi '+S.entries[i].name+'?')) { S.entries.splice(i,1); save(); render(); toast('Șters.'); }
+}
+
+// ── SETTINGS ──
+function setGoal() {
+  const v = parseInt($('goalIn').value);
+  if(v>=500&&v<=9999){S.goal=v;save();render();toast('✓ Obiectiv salvat!');}
+}
+function doReset() {
+  if(confirm('Ștergi toate alimentele de azi?')){ S.entries=[]; save(); render(); toast('Date șterse.'); go('Home',0); }
+}
+
+// ── INSTALL OS SWITCH ──
+function switchOS(os) {
+  $('tabAndroid').classList.toggle('active', os==='android');
+  $('tabIos').classList.toggle('active', os==='ios');
+  $('stepsAndroid').style.display = os==='android' ? '' : 'none';
+  $('stepsIos').style.display = os==='ios' ? '' : 'none';
+}
+
+// ── TOAST ──
+let tt;
+function toast(msg) {
+  const t=$('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('on'),2500);
+}
+
+// ── DATE ──
+const now=new Date();
+const D=['Dum','Lun','Mar','Mie','Joi','Vin','Sâm'];
+const M=['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
+const ds=`${D[now.getDay()]} ${now.getDate()} ${M[now.getMonth()]}`;
+$('dateChip').textContent=ds; $('dateChip2').textContent=ds;
+
+// ── SW ──
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+render();
+</script>
+</body>
+</html>
